@@ -35,6 +35,7 @@ int N = 256;
 float f[8] = {20, 25, 30, 35, 40, 45, 50, 55}; //list of threshold angles
 int f_cur = 3;
 int f_idx = 3;
+float angle;
 Thread thread;
 DigitalOut led1(LED1);
 DigitalOut led2(LED2);
@@ -73,15 +74,19 @@ void tilt(Arguments *in, Reply *out)
 
    //for initial reference vector
    BSP_ACCELERO_Init();
+   angle = 35;
+   printf("threshold angle:%f\n", angle );
 
     while(1)
     {
         led1 = !led1;
         BSP_ACCELERO_AccGetXYZ(pDataXYZ);
         ang = atan(float(pDataXYZ[0])/float(pDataXYZ[2]))/3.14159*180;
-        printf("accelerometer data: %d, %d, %d \n", pDataXYZ[0], pDataXYZ[1], pDataXYZ[2]);
-        printf(" angle is %3f\n" ,ang);
-        //display_angle();
+        //printf("accelerometer data: %d, %d, %d \n", pDataXYZ[0], pDataXYZ[1], pDataXYZ[2]);
+        //printf(" angle is %3f\n" ,ang);
+        if(ang > angle){
+            printf(" tilt event : %f \n", ang );
+        }
         uLCD.locate(0, 0);
         uLCD.color(BLUE);
         uLCD.printf("%.2f\n", ang);
@@ -359,7 +364,7 @@ void gestureUIMode(Arguments *in, Reply *out)
 
     error_reporter->Report("Set up successful...\n");
 
-    float angle = gesture(model_input, error_reporter, interpreter);
+    angle = gesture(model_input, error_reporter, interpreter);
     sprintf(buffer, "selected angle: %f \n", angle);
     out->putData(buffer);
 
@@ -392,18 +397,5 @@ int main(void)
         printf("%s\r\n", outbuf);
     }
     ///////////////////////////////////////
-    
-    
-  
-
-    //display_list();
-    // Main loop
-    // while (1)
-    // {
-    //     //receive rpc code
-    //     // if (1) gesture
-    //     // else tilt
-    // }
-    //thread.start(tilt);
     
 }
