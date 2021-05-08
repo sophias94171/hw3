@@ -1,4 +1,7 @@
 #include "mbed.h"
+
+#include "mbed_rpc.h"
+
 #include "uLCD_4DGL.h"
 
 ////////
@@ -26,21 +29,17 @@
 
 #include <math.h>
 //////
-
-// Initialize a pins to perform analog and digital output functions
-
-// Adjust analog output pin name to your board spec.
-
 uLCD_4DGL uLCD(D1, D0, D2);
 
 int N = 256;
-float f[8] = {20, 50, 75, 106, 125, 150, 250, 500}; //list of threshold angles
+float f[8] = {20, 25, 30, 35, 40, 45, 50, 55}; //list of threshold angles
 int f_cur = 3;
 int f_idx = 3;
 Thread thread;
 DigitalOut led1(LED1);
 DigitalOut led2(LED2);
 DigitalOut led3(LED3);
+DigitalIn mypin(USER_BUTTON);
 
 void display_list()
 {
@@ -60,22 +59,21 @@ void display_list()
 void tilt()
 {
     int16_t pDataXYZ[3] = {0};
+    float ang ;
+
    //for initial reference vector
-   for(int i=0;i<10;i++)
-    {
-        led3 = !led3;
-        ThisThread::sleep_for(1000ms);
-    }
-    while (1)
+
+    while(1)
     {
         led1 = !led1;
         BSP_ACCELERO_AccGetXYZ(pDataXYZ);
-        float ang = atan(float(pDataXYZ[0])/float(pDataXYZ[2]))/3.14159*180;
-        printf("accelerometer data: %d, %d, %d, %f\n", pDataXYZ[0], pDataXYZ[1], pDataXYZ[2], ang);
+        ang = atan(float(pDataXYZ[0])/float(pDataXYZ[2]))/3.14159*180;
+        printf("accelerometer data: %d, %d, %d \n", pDataXYZ[0], pDataXYZ[1], pDataXYZ[2]);
+        printf(" angle is %3f\n" ,ang);
         //display_angle();
         uLCD.locate(0, 0);
         uLCD.color(BLUE);
-        uLCD.printf("%f\n", ang);
+        uLCD.printf("%.2f\n", ang);
         ThisThread::sleep_for(1000ms);
     }
 }
@@ -350,15 +348,16 @@ int main(void)
     }
 
     error_reporter->Report("Set up successful...\n");
-    
-    display_list();
+
+    //display_list();
     // Main loop
     // while (1)
     // {
     //     //receive rpc code
     //     // if (1) gesture
-    //     float angle = gesture(model_input, error_reporter, interpreter);
+    //float angle = gesture(model_input, error_reporter, interpreter);
     //     // else tilt
     // }
-    thread.start(tilt);
+    //thread.start(tilt);
+    
 }
