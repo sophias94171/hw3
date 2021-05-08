@@ -40,6 +40,15 @@ DigitalOut led1(LED1);
 DigitalOut led2(LED2);
 DigitalOut led3(LED3);
 DigitalIn mypin(USER_BUTTON);
+///////////////////////////////////
+void tilt(Arguments *in, Reply *out);
+void gestureUIMode(Arguments *in, Reply *out);
+RPCFunction rpcTilt(&tilt, "tilt");
+RPCFunction rpcGesture(&gestureUIMode, "gestureUIMode");
+BufferedSerial pc(USBTX, USBRX);
+
+
+
 
 void display_list()
 {
@@ -56,12 +65,14 @@ void display_list()
 }
 
 
-void tilt()
+void tilt(Arguments *in, Reply *out)
 {
     int16_t pDataXYZ[3] = {0};
     float ang ;
+    char buffer[200];
 
    //for initial reference vector
+   BSP_ACCELERO_Init();
 
     while(1)
     {
@@ -76,6 +87,8 @@ void tilt()
         uLCD.printf("%.2f\n", ang);
         ThisThread::sleep_for(1000ms);
     }
+    sprintf(buffer, "Accelerometer values: (%d, %d, %d)", pDataXYZ[0], pDataXYZ[1], pDataXYZ[2]);
+   out->putData(buffer);
 }
 
 // Create an area of memory to use for input, output, and intermediate arrays.
@@ -159,6 +172,7 @@ int PredictGesture(float *output)
 }
 ///
 
+
 float gesture(TfLiteTensor *model_input, tflite::ErrorReporter *error_reporter, tflite::MicroInterpreter *interpreter)
 {
     float result = 0;
@@ -235,15 +249,11 @@ float gesture(TfLiteTensor *model_input, tflite::ErrorReporter *error_reporter, 
     }
     return result;
 }
-
-int main(void)
+void gestureUIMode(Arguments *in, Reply *out)
 {
- 
-    uLCD.locate(0, 0);
-    uLCD.text_width(2); //4X size text
-    uLCD.text_height(2);
+    char buffer[200];
 
-    // Set up logging.
+      // Set up logging.
 
     static tflite::MicroErrorReporter micro_error_reporter;
 
@@ -266,7 +276,7 @@ int main(void)
 
             model->version(), TFLITE_SCHEMA_VERSION);
 
-        return -1;
+        return ;
     }
 
     // Pull in only the operation implementations we need.
@@ -334,7 +344,7 @@ int main(void)
 
         error_reporter->Report("Bad input tensor parameters in model");
 
-        return -1;
+        return ;
     }
 
     TfLiteStatus setup_status = SetupAccelerometer(error_reporter);
@@ -344,10 +354,47 @@ int main(void)
 
         error_reporter->Report("Set up failed\n");
 
-        return -1;
+        return ;
     }
 
     error_reporter->Report("Set up successful...\n");
+
+    float angle = gesture(model_input, error_reporter, interpreter);
+    sprintf(buffer, "selected angle: %f \n", angle);
+    out->putData(buffer);
+
+}
+
+int main(void)
+{
+ 
+    uLCD.locate(0, 0);
+    uLCD.text_width(2); //4X size text
+    uLCD.text_height(2);
+
+    //////////////////////////////////////
+    char buf[256], outbuf[256];
+
+    FILE *devin = fdopen(&pc, "r");
+    FILE *devout = fdopen(&pc, "w");
+    while(1) {
+        memset(buf, 0, 256);
+        for (int i = 0; ; i++) {
+            char recv = fgetc(devin);
+            if (recv == '\n') {
+                printf("\r\n");
+                break;
+            }
+            buf[i] = fputc(recv, devout);
+        }
+        //Call the static call method on the RPC class
+        RPC::call(buf, outbuf);
+        printf("%s\r\n", outbuf);
+    }
+    ///////////////////////////////////////
+    
+    
+  
 
     //display_list();
     // Main loop
@@ -355,7 +402,6 @@ int main(void)
     // {
     //     //receive rpc code
     //     // if (1) gesture
-    //float angle = gesture(model_input, error_reporter, interpreter);
     //     // else tilt
     // }
     //thread.start(tilt);
