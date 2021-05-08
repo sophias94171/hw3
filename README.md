@@ -18,8 +18,10 @@
 ## Run the Program 
 
   1. Compile and run
-
-  ` $ sudo mbed compile --source . --source ~/ee2405/mbed-os-build/ -m B_L4S5I_IOT01A -t GCC_ARM -f ` 
+ `$ mkdir -p ~/ee2405new `
+ `$ cp -r ~/ee2405/mbed-os ~/ee2405new`
+  `$ cd ee2405new `  
+  `$ sudo mbed compile --source . --source ~/ee2405new/mbed-os-build2/ -m B_L4S5I_IOT01A -t GCC_ARM -f ` 
   
   ### - gesture UI mode
   
