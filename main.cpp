@@ -1,5 +1,9 @@
 #include "mbed.h"
 
+#include "MQTTNetwork.h"
+#include "MQTTmbed.h"
+#include "MQTTClient.h"
+////////
 #include "mbed_rpc.h"
 
 #include "uLCD_4DGL.h"
@@ -41,15 +45,65 @@ DigitalOut led1(LED1);
 DigitalOut led2(LED2);
 DigitalOut led3(LED3);
 DigitalIn mypin(USER_BUTTON);
+//Timeout flipper;//flipper.attach(&flip, 2s);
 ///////////////////////////////////
 void tilt(Arguments *in, Reply *out);
 void gestureUIMode(Arguments *in, Reply *out);
 RPCFunction rpcTilt(&tilt, "tilt");
 RPCFunction rpcGesture(&gestureUIMode, "gestureUIMode");
 BufferedSerial pc(USBTX, USBRX);
+///////////////////////////////
+// GLOBAL VARIABLES
+WiFiInterface *wifi;
+InterruptIn btn2(USER_BUTTON);
+//InterruptIn btn3(SW3);
+volatile int message_num = 0;
+volatile int arrivedcount = 0;
+volatile bool closed = false;
+
+const char* topic = "Mbed";
+
+Thread mqtt_thread(osPriorityHigh);
+EventQueue mqtt_queue;
+
+void messageArrived(MQTT::MessageData& md) {
+    MQTT::Message &message = md.message;
+    char msg[300];
+    sprintf(msg, "Message arrived: QoS%d, retained %d, dup %d, packetID %d\r\n", message.qos, message.retained, message.dup, message.id);
+    printf(msg);
+    ThisThread::sleep_for(1000ms);
+    char payload[300];
+    sprintf(payload, "Payload %.*s\r\n", message.payloadlen, (char*)message.payload);
+    printf(payload);
+    ++arrivedcount;
+}
+
+void publish_message(MQTT::Client<MQTTNetwork, Countdown>* client) {
+    message_num++;
+    MQTT::Message message;
+    char buff[100];
+    int16_t pDataXYZ[3] = {0};
+    while(1){
+        BSP_ACCELERO_AccGetXYZ(pDataXYZ);
+        sprintf(buff, "accelerometer data: %d, %d, %d\n", pDataXYZ[0], pDataXYZ[1], pDataXYZ[2]);
+        message.qos = MQTT::QOS0;
+        message.retained = false;
+        message.dup = false;
+        message.payload = (void*) buff;
+        message.payloadlen = strlen(buff) + 1;
+        int rc = client->publish(topic, message);
+
+        printf("rc:  %d\r\n", rc);
+        printf("Puslish message: %s\r\n", buff);
+        ThisThread::sleep_for(500ms);
 
 
+    }
+}
 
+void close_mqtt() {
+    closed = true;
+}
 
 void display_list()
 {
@@ -71,42 +125,43 @@ void tilt(Arguments *in, Reply *out)
     int16_t pDataXYZ[3] = {0};
     float ang ;
     char buffer[200];
+    BSP_ACCELERO_Init();
 
-   //for initial reference vector
-   BSP_ACCELERO_Init();
+   printf("Please place the mbed stationary on table.\n");
+   for( int i=0; i < 10; i++) //initialization
+   {
+       led1 = !led1;
+       ThisThread::sleep_for(500ms);
+   }
+    BSP_ACCELERO_AccGetXYZ(pDataXYZ);
+    float ang0 = atan(float(pDataXYZ[0])/(float(pDataXYZ[2])))/3.14159*180;
    angle = 35;
    printf("threshold angle:%f\n", angle );
 
-    while(1)
+    for(int i = 1; i<=10;)
     {
-        led1 = !led1;
+        led1 = 1;
         BSP_ACCELERO_AccGetXYZ(pDataXYZ);
-        ang = atan(float(pDataXYZ[0])/float(pDataXYZ[2]))/3.14159*180;
+        ang = atan(float(pDataXYZ[0])/(float(pDataXYZ[2])))/3.14159*180-ang0;
         //printf("accelerometer data: %d, %d, %d \n", pDataXYZ[0], pDataXYZ[1], pDataXYZ[2]);
         //printf(" angle is %3f\n" ,ang);
         if(ang > angle){
-            printf(" tilt event : %f \n", ang );
+            printf(" tilt event #%d: %f \n",i ,ang );
+            i++;
         }
         uLCD.locate(0, 0);
         uLCD.color(BLUE);
         uLCD.printf("%.2f\n", ang);
         ThisThread::sleep_for(1000ms);
+        led1 = 0;
     }
-    sprintf(buffer, "Accelerometer values: (%d, %d, %d)", pDataXYZ[0], pDataXYZ[1], pDataXYZ[2]);
-   out->putData(buffer);
+    printf("Back to RPC.");
+    return;
 }
-
-// Create an area of memory to use for input, output, and intermediate arrays.
-
-// The size of this will depend on the model you're using, and may need to be
-
-// determined by experimentation.
 
 constexpr int kTensorArenaSize = 60 * 1024;
 
 uint8_t tensor_arena[kTensorArenaSize];
-
-// Return the result of the last prediction
 
 int PredictGesture(float *output)
 {
@@ -175,8 +230,6 @@ int PredictGesture(float *output)
 
     return this_predict;
 }
-///
-
 
 float gesture(TfLiteTensor *model_input, tflite::ErrorReporter *error_reporter, tflite::MicroInterpreter *interpreter)
 {
@@ -220,7 +273,7 @@ float gesture(TfLiteTensor *model_input, tflite::ErrorReporter *error_reporter, 
         {
 
             error_reporter->Report(config.output_message[gesture_index]);
-            printf("Current index %d\n", gesture_index);
+            //printf("Current index %d\n", gesture_index);
             // check button
             if (gesture_index == 0) // up
             {
@@ -256,6 +309,7 @@ float gesture(TfLiteTensor *model_input, tflite::ErrorReporter *error_reporter, 
 }
 void gestureUIMode(Arguments *in, Reply *out)
 {
+    led3 = 1;
     char buffer[200];
 
       // Set up logging.
@@ -367,6 +421,9 @@ void gestureUIMode(Arguments *in, Reply *out)
     angle = gesture(model_input, error_reporter, interpreter);
     sprintf(buffer, "selected angle: %f \n", angle);
     out->putData(buffer);
+    led3 = 0;
+    printf("Back to RPC.");
+    return;
 
 }
 
@@ -397,5 +454,6 @@ int main(void)
         printf("%s\r\n", outbuf);
     }
     ///////////////////////////////////////
+    
     
 }
