@@ -33,7 +33,7 @@
   
   5. Using RPC over serial to send a command to call tilt angle detection mode.
   6. LED1(green) start blinking to indicate for a user to place the mbed on table.
-  7. LED1(green) to indicate for a user to tilt the mbed. Screen will show the tilt angle on uLCD  every 1 seconds.
+  7. LED1(green) stop blinking to indicate for a user to tilt the mbed. Screen will show the tilt angle on uLCD  every 1 seconds.
   8. If tilt angle is over the selected threshold angle, mbed will publish the event and angle through WiFi/MQTT to a broker. 
   9. After 10 tilt events, mbed is back to RPC loop.
 
