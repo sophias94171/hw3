@@ -5,8 +5,11 @@
 1. Compile
 
  `$ mkdir -p ~/ee2405new `
+ 
  `$ cp -r ~/ee2405/mbed-os ~/ee2405new`
+ 
  `$ cd ee2405new `
+ 
  `$ mbed compile --library --no-archive -t GCC_ARM -m B_L4S5I_IOT01A --build ~/ee2405new/mbed-os-build2 `
  
 2.Create a new Mbed project.
@@ -17,10 +20,12 @@
 3. Import "4DGL-uLCD-SE" library to the current project.
  
  ` $ git clone https://gitlab.larc-nthu.net/ee2405_2021/4dgl-ulcd-se.git `
+ 
  ` $ rm -rf ./4dgl-ulcd-se/.git `
  
 4. Import BSP library for running accelerometer.
  `$ mbed add http://developer.mbed.org/teams/ST/code/BSP_B-L475E-IOT01/#bfe8272ced90`
+ 
  `$ rm ~/ee2405/mbed08/src/data_collect/BSP_B-L475E-IOT01/Drivers/BSP/B-L475E-IOT01/stm32l475e_iot01_qspi.*`
  
 5. gesture UI
@@ -29,6 +34,7 @@
 ## Run the Program 
 
   1. Compile and run
+ 
  `$ sudo mbed compile --source . --source ~/ee2405new/mbed-os-build2/ -m B_L4S5I_IOT01A -t GCC_ARM -f ` 
   
   ### - gesture UI mode
