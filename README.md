@@ -28,7 +28,7 @@
   2. Using RPC over serial to send a command to call gesture UI mode.
   3. LED3(blue) to indicate the start of gesture UI mode.
   4. User use gesture to select from threshold angles from a list of angles, 20, 25, 30, 35, 40, 45, 50, 55.
-  5. PC/Python will show the selection on screen.
+  5. The selected threshold angle is published through WiFi/MQTT to a broker.
   ### - tilt angle detection mode
   
   5. Using RPC over serial to send a command to call tilt angle detection mode.
@@ -36,7 +36,6 @@
   7. LED1(green) to indicate for a user to tilt the mbed. Screen will show the tilt angle on uLCD  every 1 seconds.
   8. If tilt angle is over the selected threshold angle, mbed will publish the event and angle through WiFi/MQTT to a broker. 
   9. After 10 tilt events, mbed is back to RPC loop.
-  10. PC/Python will show all tilt events on screen.
 
 ## Demonstration
   ### - gesture UI mode
