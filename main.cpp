@@ -40,7 +40,10 @@ float f[8] = {20, 25, 30, 35, 40, 45, 50, 55}; //list of threshold angles
 int f_cur = 3;
 int f_idx = 3;
 float angle;
-Thread thread;
+
+Thread thread(osPriorityHigh);
+EventQueue queue;
+
 DigitalOut led1(LED1);
 DigitalOut led2(LED2);
 DigitalOut led3(LED3);
@@ -49,22 +52,26 @@ DigitalIn mypin(USER_BUTTON);
 ///////////////////////////////////
 void tilt(Arguments *in, Reply *out);
 void gestureUIMode(Arguments *in, Reply *out);
+
 RPCFunction rpcTilt(&tilt, "tilt");
 RPCFunction rpcGesture(&gestureUIMode, "gestureUIMode");
 BufferedSerial pc(USBTX, USBRX);
 ///////////////////////////////
 // GLOBAL VARIABLES
 WiFiInterface *wifi;
+MQTT::Client<MQTTNetwork, Countdown> *client_ptr;
+MQTTNetwork *mqttNetwork;
+
 InterruptIn btn2(USER_BUTTON);
 //InterruptIn btn3(SW3);
 volatile int message_num = 0;
 volatile int arrivedcount = 0;
 volatile bool closed = false;
 
+constexpr int kTensorArenaSize = 60 * 1024;
+uint8_t tensor_arena[kTensorArenaSize];
 const char* topic = "Mbed";
 
-Thread mqtt_thread(osPriorityHigh);
-EventQueue mqtt_queue;
 
 void messageArrived(MQTT::MessageData& md) {
     MQTT::Message &message = md.message;
@@ -78,27 +85,35 @@ void messageArrived(MQTT::MessageData& md) {
     ++arrivedcount;
 }
 
-void publish_message(MQTT::Client<MQTTNetwork, Countdown>* client) {
+void publish_message_1(float angle)
+{
     message_num++;
     MQTT::Message message;
     char buff[100];
-    int16_t pDataXYZ[3] = {0};
-    while(1){
-        BSP_ACCELERO_AccGetXYZ(pDataXYZ);
-        sprintf(buff, "accelerometer data: %d, %d, %d\n", pDataXYZ[0], pDataXYZ[1], pDataXYZ[2]);
-        message.qos = MQTT::QOS0;
-        message.retained = false;
-        message.dup = false;
-        message.payload = (void*) buff;
-        message.payloadlen = strlen(buff) + 1;
-        int rc = client->publish(topic, message);
+    sprintf(buff, "selected angle: %f \n", angle);
+    message.qos = MQTT::QOS0;
+    message.retained = false;
+    message.dup = false;
+    message.payload = (void*) buff;
+    message.payloadlen = strlen(buff) + 1;
+    int rc = client_ptr->publish(topic, message);
+}
 
-        printf("rc:  %d\r\n", rc);
-        printf("Puslish message: %s\r\n", buff);
-        ThisThread::sleep_for(500ms);
-
-
-    }
+void publish_message_2(int i, float ang){
+    printf("---> publish\n");
+    message_num++;
+    MQTT::Message message;
+    char buff[100];
+    sprintf(buff, " tilt event #%d: %f \n", i, ang);
+    message.qos = MQTT::QOS0;
+    message.retained = false;
+    message.dup = false;
+    message.payload = (void*) buff;
+    message.payloadlen = strlen(buff) + 1;
+    printf("---> before\n");
+    int rc = client_ptr->publish(topic, message);
+    printf("rc:  %d\r\n", rc);
+    printf("Puslish message: %s\r\n", buff);
 }
 
 void close_mqtt() {
@@ -128,15 +143,18 @@ void tilt(Arguments *in, Reply *out)
     BSP_ACCELERO_Init();
 
    printf("Please place the mbed stationary on table.\n");
+   float ang0 = 0;
    for( int i=0; i < 10; i++) //initialization
    {
        led1 = !led1;
+       BSP_ACCELERO_AccGetXYZ(pDataXYZ);
+       
+       ang0 += atan(float(pDataXYZ[0])/(float(pDataXYZ[2])))/3.14159*180;
        ThisThread::sleep_for(500ms);
    }
-    BSP_ACCELERO_AccGetXYZ(pDataXYZ);
-    float ang0 = atan(float(pDataXYZ[0])/(float(pDataXYZ[2])))/3.14159*180;
-   angle = 35;
-   printf("threshold angle:%f\n", angle );
+   printf("threshold angle:%f\n", angle);
+   ang0 /= 10;
+   
 
     for(int i = 1; i<=10;)
     {
@@ -146,7 +164,8 @@ void tilt(Arguments *in, Reply *out)
         //printf("accelerometer data: %d, %d, %d \n", pDataXYZ[0], pDataXYZ[1], pDataXYZ[2]);
         //printf(" angle is %3f\n" ,ang);
         if(ang > angle){
-            printf(" tilt event #%d: %f \n",i ,ang );
+            printf(" tilt event #%d: %f \n",i , ang);
+            queue.call(publish_message_2, i, ang);
             i++;
         }
         uLCD.locate(0, 0);
@@ -156,12 +175,7 @@ void tilt(Arguments *in, Reply *out)
         led1 = 0;
     }
     printf("Back to RPC.");
-    return;
 }
-
-constexpr int kTensorArenaSize = 60 * 1024;
-
-uint8_t tensor_arena[kTensorArenaSize];
 
 int PredictGesture(float *output)
 {
@@ -423,8 +437,60 @@ void gestureUIMode(Arguments *in, Reply *out)
     out->putData(buffer);
     led3 = 0;
     printf("Back to RPC.");
+    queue.call(publish_message_1, angle);
     return;
 
+}
+int setup_wifi(){
+    wifi = WiFiInterface::get_default_instance();
+    printf("1\n");
+
+    if (!wifi) {
+            printf("ERROR: No WiFiInterface found.\r\n");
+            return -1;
+    }
+
+
+    printf("\nConnecting to %s...\r\n", MBED_CONF_APP_WIFI_SSID);
+    int ret = wifi->connect(MBED_CONF_APP_WIFI_SSID, MBED_CONF_APP_WIFI_PASSWORD, NSAPI_SECURITY_WPA_WPA2);
+    if (ret != 0) {
+            printf("\nConnection error: %d\r\n", ret);
+            return -1;
+    }
+    printf("2\n");
+    NetworkInterface* net = wifi;
+    mqttNetwork = new MQTTNetwork(net);
+    client_ptr = new MQTT::Client<MQTTNetwork, Countdown>(*mqttNetwork);
+    //TODO: revise host to your IP
+    const char* host = "172.20.10.2";
+    printf("Connecting to TCP network...\r\n");
+    printf("3\n");
+    SocketAddress sockAddr;
+    sockAddr.set_ip_address(host);
+    sockAddr.set_port(1883);
+    printf("4\n");
+    printf("address is %s/%d\r\n", (sockAddr.get_ip_address() ? sockAddr.get_ip_address() : "None"),  (sockAddr.get_port() ? sockAddr.get_port() : 0) ); //check setting
+    int rc = mqttNetwork->connect(sockAddr);//(host, 1883);
+    if (rc != 0) {
+            printf("Connection error.");
+            return -1;
+    }
+    printf("Successfully connected!\r\n");
+    printf("5\n");
+    MQTTPacket_connectData data = MQTTPacket_connectData_initializer;
+    data.MQTTVersion = 3;
+    data.clientID.cstring = "Mbed";
+
+    if ((rc = client_ptr->connect(data)) != 0){
+            printf("Fail to connect MQTT\r\n");
+    }
+    if (client_ptr->subscribe(topic, MQTT::QOS0, messageArrived) != 0){
+            printf("Fail to subscribe\r\n");
+    }
+    printf("6\n");
+    //client_ptr = &client;
+    printf("7\n");
+    return 0;
 }
 
 int main(void)
@@ -433,6 +499,10 @@ int main(void)
     uLCD.locate(0, 0);
     uLCD.text_width(2); //4X size text
     uLCD.text_height(2);
+    thread.start(callback(&queue, &EventQueue::dispatch_forever));
+    printf("!!!!!!!!!!!!!!!!!!!!!!!\n");
+    setup_wifi();
+    printf("!!!!!!!!!!!!!!!!!!!!!!!\n");
 
     //////////////////////////////////////
     char buf[256], outbuf[256];
@@ -455,5 +525,5 @@ int main(void)
     }
     ///////////////////////////////////////
     
-    
+ 
 }
