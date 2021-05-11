@@ -100,7 +100,6 @@ void publish_message_1(float angle)
 }
 
 void publish_message_2(int i, float ang){
-    printf("---> publish\n");
     message_num++;
     MQTT::Message message;
     char buff[100];
@@ -110,7 +109,6 @@ void publish_message_2(int i, float ang){
     message.dup = false;
     message.payload = (void*) buff;
     message.payloadlen = strlen(buff) + 1;
-    printf("---> before\n");
     int rc = client_ptr->publish(topic, message);
     printf("rc:  %d\r\n", rc);
     printf("Puslish message: %s\r\n", buff);
@@ -443,7 +441,7 @@ void gestureUIMode(Arguments *in, Reply *out)
 }
 int setup_wifi(){
     wifi = WiFiInterface::get_default_instance();
-    printf("1\n");
+    //printf("1\n");
 
     if (!wifi) {
             printf("ERROR: No WiFiInterface found.\r\n");
@@ -457,18 +455,18 @@ int setup_wifi(){
             printf("\nConnection error: %d\r\n", ret);
             return -1;
     }
-    printf("2\n");
+    //printf("2\n");
     NetworkInterface* net = wifi;
     mqttNetwork = new MQTTNetwork(net);
     client_ptr = new MQTT::Client<MQTTNetwork, Countdown>(*mqttNetwork);
     //TODO: revise host to your IP
     const char* host = "172.20.10.2";
     printf("Connecting to TCP network...\r\n");
-    printf("3\n");
+    //printf("3\n");
     SocketAddress sockAddr;
     sockAddr.set_ip_address(host);
     sockAddr.set_port(1883);
-    printf("4\n");
+    //printf("4\n");
     printf("address is %s/%d\r\n", (sockAddr.get_ip_address() ? sockAddr.get_ip_address() : "None"),  (sockAddr.get_port() ? sockAddr.get_port() : 0) ); //check setting
     int rc = mqttNetwork->connect(sockAddr);//(host, 1883);
     if (rc != 0) {
@@ -476,7 +474,7 @@ int setup_wifi(){
             return -1;
     }
     printf("Successfully connected!\r\n");
-    printf("5\n");
+    //printf("5\n");
     MQTTPacket_connectData data = MQTTPacket_connectData_initializer;
     data.MQTTVersion = 3;
     data.clientID.cstring = "Mbed";
@@ -487,9 +485,9 @@ int setup_wifi(){
     if (client_ptr->subscribe(topic, MQTT::QOS0, messageArrived) != 0){
             printf("Fail to subscribe\r\n");
     }
-    printf("6\n");
+    //printf("6\n");
     //client_ptr = &client;
-    printf("7\n");
+    //printf("7\n");
     return 0;
 }
 
@@ -500,9 +498,9 @@ int main(void)
     uLCD.text_width(2); //4X size text
     uLCD.text_height(2);
     thread.start(callback(&queue, &EventQueue::dispatch_forever));
-    printf("!!!!!!!!!!!!!!!!!!!!!!!\n");
+    //printf("!!!!!!!!!!!!!!!!!!!!!!!\n");
     setup_wifi();
-    printf("!!!!!!!!!!!!!!!!!!!!!!!\n");
+    //printf("!!!!!!!!!!!!!!!!!!!!!!!\n");
 
     //////////////////////////////////////
     char buf[256], outbuf[256];
