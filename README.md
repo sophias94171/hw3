@@ -43,7 +43,7 @@
  
  `$ sudo mbed compile --source . --source ~/ee2405new/mbed-os-build2/ -m B_L4S5I_IOT01A -t GCC_ARM -f ` 
  2. Start a new terminal to execute python client.
- 
+  
   `$ sudo python3 wifi_mqtt/mqtt_client.py ` 
  
  3. 
@@ -102,7 +102,7 @@
   
   ![](LED1.JPG)
   
-  4. Tilt angle show on uLCD  every 1 seconds.
+  4. Tilt angle show on uLCD  every 1 seconds denoted by blue..
   
   ![](uLCD_acc.JPG)
   
