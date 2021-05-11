@@ -31,8 +31,9 @@
  - tflite.json
  - wifi_mqtt.lib
  
-4. Coding
- - 
+4. Start VS code to edit main.cpp.
+ - main function
+ - ```
 6. gesture UI
 7. tilt angle detection
 
@@ -41,6 +42,11 @@
   1. Compile and run
  
  `$ sudo mbed compile --source . --source ~/ee2405new/mbed-os-build2/ -m B_L4S5I_IOT01A -t GCC_ARM -f ` 
+ 2. Start a new terminal to execute python client.
+ 
+  `$ sudo python3 wifi_mqtt/mqtt_client.py ` 
+ 
+ 3. 
   
   ### - gesture UI mode
   
