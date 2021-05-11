@@ -64,29 +64,54 @@
 
 ## Results
 
-  ### - Connecting and subscribe
+  ### - Connecting and subscribe 
   
   ![](connect_Success.png)
   
   ### - gesture UI mode
   
-  1. RPC call
+  1. RPC call gesture UI mode and using gesture to select angle
   
-  2. LED3(blue) to indicate the start of gesture UI mode
+  ![](gesture_select.png)
   
-  3. the selection show on uLCD
+  2. MQTT message
   
-  4. MQTT message
+  ![](gesture_select.png)
+  
+  3. LED3(blue) to indicate the start of gesture UI mode
+  
+  ![](LED3.JPG)
+  
+  4. the selection show on uLCD
+  
+  ![](uLCD_selection.JPG)
   
   5. Back to RPC loop.
+ 
+  ![](gesture_select.png)
 
   ### - tilt angle detection mode
   
-  1. RPC call
+  1. RPC call RPC call tilt angle detection mode
+  
+  ![](RPC_tilt.png)
+  
   2. LED1(green) start blinking to indicate for a user to place the mbed on table.
+  
   3. LED1(green) stop blinking to indicate for a user to tilt the mbed.
+  
+  ![](LED1.JPG)
+  
   4. Tilt angle show on uLCD  every 1 seconds.
+  
+  ![](uLCD_acc.JPG)
+  
   5. MQTT message 
+  
+  ![](tilt_detection_MQTT.png)
+  
   6. Back to RPC loop.
   
+  ![](tilt_backtoRPC.png)
+
 
