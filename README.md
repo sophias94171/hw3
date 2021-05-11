@@ -2,7 +2,7 @@
 
 ## Setup the Program 
 
-1. Compile
+1. Compile mbed-os library
 
  `$ mkdir -p ~/ee2405new `
  
@@ -12,30 +12,41 @@
  
  `$ mbed compile --library --no-archive -t GCC_ARM -m B_L4S5I_IOT01A --build ~/ee2405new/mbed-os-build2 `
  
-2.Create a new Mbed project.
-3.import RPC library.
-
- ` $ mbed add https://gitlab.larc-nthu.net/ee2405_2021/mbed_rpc.git ` 
-
-3. Import "4DGL-uLCD-SE" library to the current project.
+2.Create a new Mbed project and clone the repo.
  
- ` $ git clone https://gitlab.larc-nthu.net/ee2405_2021/4dgl-ulcd-se.git `
+3. Move files and directories from mbed7,8,9,10
+ - mbed_rpc
+ - tensorflowlite_mbed
+ - wifi_mqtt
+ - accelerometer_handler.cpp
+ - accelerometer_handler.h
+ - BSP_B-L475E-IOT01.lib
+ - config.h
+ - magic_wand_model_data.cpp
+ - magic_wand_model_data.h
+ - mbed_app.json
+ - mbed_rpc.lib
+ - rpc_function.py
+ - tensorflowlite_mbed.lib
+ - tflite.json
+ - wifi_mqtt.lib
  
- ` $ rm -rf ./4dgl-ulcd-se/.git `
- 
-4. Import BSP library for running accelerometer.
- `$ mbed add http://developer.mbed.org/teams/ST/code/BSP_B-L475E-IOT01/#bfe8272ced90`
- 
- `$ rm ~/ee2405/mbed08/src/data_collect/BSP_B-L475E-IOT01/Drivers/BSP/B-L475E-IOT01/stm32l475e_iot01_qspi.*`
- 
-5. gesture UI
-6. tilt angle detection
+4. Start VS code to edit main.cpp.
+ - main function
+ - ```
+6. gesture UI
+7. tilt angle detection
 
 ## Run the Program 
 
   1. Compile and run
  
  `$ sudo mbed compile --source . --source ~/ee2405new/mbed-os-build2/ -m B_L4S5I_IOT01A -t GCC_ARM -f ` 
+ 2. Start a new terminal to execute python client.
+ 
+  `$ sudo python3 wifi_mqtt/mqtt_client.py ` 
+ 
+ 3. 
   
   ### - gesture UI mode
   
